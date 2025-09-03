@@ -22,7 +22,6 @@ class TicketController extends Controller
      */
     public function store(Request $request)
     {
-        dd($request->all());
         $validated = $request->validate([
             'subject' => 'required|string|max:255',
             'body' => 'required|string',
