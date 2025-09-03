@@ -13,7 +13,8 @@ class TicketController extends Controller
      */
     public function index()
     {
-        //
+        $search = request()->input('search');
+        $filter = request()->input('filter');
     }
 
     /**
@@ -21,7 +22,13 @@ class TicketController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        dd($request->all());
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'body' => 'required|string',
+        ]);
+
+        dd($validated);
     }
 
     /**

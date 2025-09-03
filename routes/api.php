@@ -13,27 +13,27 @@ Route::get('/user', function (Request $request) {
 /**
  * Get a list of tickets.
  */
-Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+Route::get('/tickets', [TicketController::class, 'index'])->name('api.tickets.index');
 
 /**
  * Create a new ticket.
  */
-Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
+Route::post('/tickets', [TicketController::class, 'store'])->name('api.tickets.store');
 
 /**
  * Get a specific ticket.
  */
-Route::get('/tickets/{id}', [TicketController::class, 'show'])->name('tickets.show');
+Route::get('/tickets/{id}', [TicketController::class, 'show'])->name('api.tickets.show');
 
 /**
  * Update a specific ticket.
  */
-Route::patch('/tickets/{id}', [TicketController::class, 'update'])->name('tickets.update');
+Route::patch('/tickets/{id}', [TicketController::class, 'update'])->name('api.tickets.update');
 
 /**
  * Classify a specific ticket.
  */
-Route::post('/tickets/{id}/classify', ClassifyTicketController::class)->name('tickets.classify');
+Route::post('/tickets/{id}/classify', ClassifyTicketController::class)->name('api.tickets.classify');
 
 
 /**
