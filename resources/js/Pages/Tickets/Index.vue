@@ -42,23 +42,26 @@ const onFilter = useDebounce(() => {
  * Handle new ticket creation
  */
 const addNewTicket = async () => {
-    const { isCanceled } = await useAddTicketDialog.reveal();
+    if (!useAddTicketDialog.isRevealed.value) {
+        form.reset();
+        form.clearErrors?.();
+        useAddTicketDialog.reveal();
+        return;
+    }
 
-    if (isCanceled) return;
-
-    form.post(route('api.tickets.store'), {
-        onSuccess: () => {
-            form.reset();
-            // Close the dialog and resolve the reveal() call
-            useAddTicketDialog.confirm();
-        },
-        onError: (errors) => {
-            console.error('Error creating ticket:', errors);
+    // Modal is open → attempt submit
+    try {
+        await axios.post(route('api.tickets.store'), { ...form });
+        useAddTicketDialog.confirm();
+        form.reset();
+    } catch (error) {
+        if (error.response?.data?.errors) {
+            form.setError?.(error.response.data.errors);
+        } else {
+            console.error('An unexpected error occurred:', error);
         }
-    });
-
-    // reveal resolved (confirmed). Submission handled inside modal submit handler.
-}
+    }
+};
 
 </script>
 
@@ -70,29 +73,33 @@ const addNewTicket = async () => {
 
         <div class="modal__body">
             <label class="modal__label">
-                <label class="modal__label">
-                    Subject
-                </label>
+                <label class="modal__label">Subject</label>
                 <input v-model="form.subject" class="modal__input" required />
+                <small v-if="form.errors.subject" class="modal__error">
+                    {{ Array.isArray(form.errors.subject) ? form.errors.subject[0] : form.errors.subject }}
+                </small>
             </label>
 
             <label class="modal__label">
-                <label class="modal__label">
-                    Body
-                </label>
+                <label class="modal__label">Body</label>
                 <textarea v-model="form.body" class="modal__textarea" required></textarea>
+                <small v-if="form.errors.body" class="modal__error">
+                    {{ Array.isArray(form.errors.body) ? form.errors.body[0] : form.errors.body }}
+                </small>
             </label>
 
             <div class="modal__footer">
                 <button type="button" class="modal__btn modal__btn--secondary" @click="useAddTicketDialog.cancel()">
                     Cancel
                 </button>
-                <button type="submit" class="modal__btn modal__btn--primary" @click="useAddTicketDialog.confirm">
+                <!-- call the same function; no native submit, no direct confirm -->
+                <button type="button" class="modal__btn modal__btn--primary" @click="addNewTicket">
                     Create
                 </button>
             </div>
         </div>
     </Modal>
+
 
 
     <BeMoLayout>
@@ -131,11 +138,19 @@ const addNewTicket = async () => {
 }
 
 /* inner label used for the field caption (markup nests labels) */
-.modal__label > .modal__label {
+.modal__label>.modal__label {
     font-weight: 600;
     margin-bottom: 0.5rem;
     display: block;
     color: #111827;
+    font-size: 0.875rem;
+}
+
+.modal__error {
+    color: #dc2626;
+    margin-top: 0.25rem;
+    display: block;
+    font-weight: 600;
     font-size: 0.875rem;
 }
 
@@ -144,7 +159,8 @@ const addNewTicket = async () => {
     width: 100%;
     padding: 0.5rem 0.75rem;
     border: 1px solid #d1d5db;
-    background: #ffffff; /* white fields with dark text */
+    background: #ffffff;
+    /* white fields with dark text */
     color: #111827;
     border-radius: 0.375rem;
     box-sizing: border-box;
@@ -153,7 +169,7 @@ const addNewTicket = async () => {
 .modal__input:focus,
 .modal__textarea:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
     border-color: #6366f1;
 }
 

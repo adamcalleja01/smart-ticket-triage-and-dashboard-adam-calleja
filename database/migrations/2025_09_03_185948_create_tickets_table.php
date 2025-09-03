@@ -16,7 +16,7 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('subject');
             $table->text('body');
-            $table->enum('status', TicketStatus::values());
+            $table->enum('status', TicketStatus::values())->default(TicketStatus::OPEN->value);
             $table->string('category')->nullable();
             $table->text('explanation')->nullable();
             $table->float('confidence')->nullable();
