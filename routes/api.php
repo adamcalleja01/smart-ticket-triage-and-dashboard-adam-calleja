@@ -23,17 +23,17 @@ Route::post('/tickets', [TicketController::class, 'store'])->name('api.tickets.s
 /**
  * Get a specific ticket.
  */
-Route::get('/tickets/{id}', [TicketController::class, 'show'])->name('api.tickets.show');
+Route::get('/tickets/{ticket:id}', [TicketController::class, 'show'])->name('api.tickets.show');
 
 /**
  * Update a specific ticket.
  */
-Route::patch('/tickets/{id}', [TicketController::class, 'update'])->name('api.tickets.update');
+Route::patch('/tickets/{ticket:id}', [TicketController::class, 'update'])->name('api.tickets.update');
 
 /**
  * Classify a specific ticket.
  */
-Route::post('/tickets/{id}/classify', ClassifyTicketController::class)->name('api.tickets.classify');
+Route::post('/tickets/{ticket:id}/classify', ClassifyTicketController::class)->name('api.tickets.classify');
 
 
 /**

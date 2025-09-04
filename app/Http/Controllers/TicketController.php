@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Inertia\Inertia;
 use App\Models\Ticket;
+use App\Enums\Category;
 use App\Enums\TicketStatus;
 use Illuminate\Http\Request;
 
@@ -15,7 +16,18 @@ class TicketController extends Controller
     public function index()
     {
         return Inertia::render('Tickets/Index', [
-            'ticket_status' => TicketStatus::cases(),
+            'ticket_status' => array_map(function ($case) {
+                return [
+                    'value' => $case->value,
+                    'label' => $case->label(),
+                ];
+            }, TicketStatus::cases()),
+            'categories' => array_map(function ($case) {
+                return [
+                    'value' => $case->value,
+                    'label' => $case->label(),
+                ];
+            }, Category::cases())
         ]);
     }
 
@@ -40,7 +52,22 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket)
     {
-        //
+        return Inertia::render('Tickets/Show', [
+            'ticket' => $ticket,
+            'ticket_status' => array_map(function ($case) {
+                return [
+                    'value' => $case->value,
+                    'label' => $case->label(),
+                ];
+            }, TicketStatus::cases()),
+            'categories' => array_map(function ($case) {
+                return [
+                    'value' => $case->value,
+                    'label' => $case->label(),
+                ];
+            }, Category::cases())
+
+        ]);
     }
 
     /**

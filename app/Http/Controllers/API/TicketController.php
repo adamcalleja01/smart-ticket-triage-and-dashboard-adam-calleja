@@ -20,13 +20,13 @@ class TicketController extends Controller
 
         return response()->json(
             Ticket::when($search, function ($query, $search) {
-                $query->where('subject', 'like', "%{$search}%")
-                    ->orWhere('body', 'like', "%{$search}%");
+                $query->where('subject', 'ilike', "%{$search}%")
+                    ->orWhere('body', 'ilike', "%{$search}%");
             })
                 ->when($filter, function ($query, $filter) {
                     $query->where('status', $filter);
                 })
-                ->orderBy('created_at', 'desc')
+                ->orderBy('updated_at', 'desc')
                 ->paginate(9)
         );
     }
@@ -66,7 +66,7 @@ class TicketController extends Controller
      */
     public function show(Ticket $ticket)
     {
-        //
+        return response()->json($ticket);
     }
 
     /**
@@ -74,7 +74,15 @@ class TicketController extends Controller
      */
     public function update(Request $request, Ticket $ticket)
     {
-        //
+        $validated = $request->validate([
+            'status' => 'required|in:' . implode(',', \App\Enums\TicketStatus::values()),
+            'category' => 'required|string|max:255',
+            'note' => 'nullable|string',
+        ]);
+
+        $ticket->update($validated);
+
+        return response()->json($ticket);
     }
 
     /**

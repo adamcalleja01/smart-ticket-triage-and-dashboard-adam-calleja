@@ -18,6 +18,7 @@ return new class extends Migration
             $table->text('body');
             $table->enum('status', TicketStatus::values())->default(TicketStatus::OPEN->value);
             $table->string('category')->nullable();
+            $table->text('note')->nullable();
             $table->text('explanation')->nullable();
             $table->float('confidence')->nullable();
             $table->timestamps();

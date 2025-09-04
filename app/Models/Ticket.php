@@ -19,6 +19,13 @@ class Ticket extends Model
         'explanation',
         'confidence',
         'created_at',
-        'updated_at'
+        'updated_at',
+        'note',
+    ];
+
+    protected $casts = [
+        'id' => 'string',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 }
