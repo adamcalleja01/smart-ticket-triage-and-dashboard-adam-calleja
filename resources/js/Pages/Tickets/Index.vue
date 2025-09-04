@@ -28,7 +28,6 @@ const form = useForm({
     body: ''
 })
 
-/* NEW: dropdown state + refs */
 const isFilterOpen = ref(false);
 const filterRef = ref(null);
 

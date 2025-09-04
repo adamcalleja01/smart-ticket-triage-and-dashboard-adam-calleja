@@ -3,6 +3,7 @@ import { Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
 import { useConfirmDialog } from '@vueuse/core';
+import Modal from '@/Components/Modal.vue';
 
 const useEditTicketDialog = useConfirmDialog();
 
@@ -11,9 +12,9 @@ const props = defineProps({
 })
 
 const form = useForm({
-    status: props?.ticket?.status ?? '',
-    category: props?.ticket?.category ?? '',
-    note: props?.ticket?.note ?? '',
+    status: '',
+    category: '',
+    note: '',
 })
 
 const emit = defineEmits(['refetch'])
@@ -21,33 +22,110 @@ const emit = defineEmits(['refetch'])
 const isClassifying = ref(false)
 
 const updateTicket = async () => {
-    const {data, isCanceled} = await useEditTicketDialog.reveal();
+    if (!useEditTicketDialog.isRevealed.value) {
+        // reset first to ensure a clean form state, then populate with current ticket values
+        form.reset();
+        form.clearErrors?.();
+        Object.assign(form, {
+            status: props.ticket.status ?? '',
+            category: props.ticket.category ?? '',
+            note: props.ticket.note ?? '',
+        });
 
-    if (isCanceled) {
+        useEditTicketDialog.reveal();
         return;
     }
 
+    // Dialog already revealed -> user confirmed the edit, send the PATCH request
+    try {
+        await axios.patch(route('api.tickets.update', {
+            ticket: props?.ticket?.id
+        }), { ...form });
+
+        // Close the dialog as a confirmed action and reset local form
+        useEditTicketDialog.confirm();
+        form.reset();
+        emit('refetch');
+    } catch (error) {
+        if (error.response?.data?.errors) {
+            form.setError?.(error.response.data.errors);
+        } else {
+            console.error('An unexpected error occurred:', error);
+        }
+    }
 
 }
 
 const classifyTicket = async () => {
+    let response; // declare outside so it's visible in finally
     try {
-        isClassifying.value = true
-        const response = await axios.post(route('api.tickets.classify', {
-            ticket: props?.ticket?.id
-        }))
-        console.log('Ticket classified:', response.data)
-        emit('refetch')
+        isClassifying.value = true;
+        response = await axios.post(
+            route('api.tickets.classify', { ticket: props?.ticket?.id })
+        );
     } catch (error) {
         console.error('Error classifying ticket:', error);
     } finally {
-        isClassifying.value = false
+        isClassifying.value = false;
+
+        if (!response) return; // request failed
+
+        if (response.status == 200) {
+            console.log('Ticket classification request accepted');
+            emit('refetch'); 
+        } else {
+            console.error('Unexpected response status:', response.status);
+        }
     }
-}
+};
+
 
 </script>
 
 <template>
+    <Modal :show="useEditTicketDialog.isRevealed.value" @close="useEditTicketDialog.cancel()">
+        <div class="modal__header">
+            <h2 class="modal__title">Edit Ticket</h2>
+        </div>
+
+        <div class="modal__body">
+            <label class="modal__label">
+                <label class="modal__label">Status</label>
+                <input v-model="form.status" class="modal__input" required />
+                <small v-if="form.errors.status" class="modal__error">
+                    {{ Array.isArray(form.errors.status) ? form.errors.status[0] : form.errors.status }}
+                </small>
+            </label>
+
+            <label class="modal__label">
+                <label class="modal__label">Category</label>
+                <input v-model="form.category" class="modal__input" required />
+                <small v-if="form.errors.category" class="modal__error">
+                    {{ Array.isArray(form.errors.category) ? form.errors.category[0] : form.errors.category }}
+                </small>
+            </label>
+
+            <label class="modal__label">
+                <label class="modal__label">Note</label>
+                <textarea v-model="form.note" class="modal__textarea"></textarea>
+                <small v-if="form.errors.note" class="modal__error">
+                    {{ Array.isArray(form.errors.note) ? form.errors.note[0] : form.errors.note }}
+                </small>
+            </label>
+
+            <div class="modal__footer">
+                <button type="button" class="modal__btn modal__btn--secondary" @click="useEditTicketDialog.cancel()">
+                    Cancel
+                </button>
+                <!-- call the same function; no native submit, no direct confirm -->
+                <button type="button" class="modal__btn modal__btn--primary" @click="updateTicket">
+                    Update
+                </button>
+            </div>
+        </div>
+    </Modal>
+
+
     <article class="ticket-card" :aria-label="`Ticket ${ticket.id}`">
         <header class="ticket-card__header">
             <h3 class="ticket-card__subject">{{ ticket.subject }}</h3>
@@ -70,23 +148,20 @@ const classifyTicket = async () => {
             </span>
 
             <!-- Confidence label (inline formatting) -->
-            <span class="ticket-card__confidence" v-if="ticket.confidence !== null && ticket.confidence !== undefined && ticket.confidence !== ''">
+            <span class="ticket-card__confidence"
+                v-if="ticket.confidence !== null && ticket.confidence !== undefined && ticket.confidence !== ''">
                 Confidence: <strong>{{ Number(ticket.confidence).toFixed(2) }}</strong>
             </span>
 
             <!-- Explanation tooltip/icon -->
-            <button
-                class="ticket-card__explain-btn"
-                v-if="ticket.explanation"
-                :title="ticket.explanation"
-                type="button"
-                aria-label="Explanation"
-            >
-                
+            <button class="ticket-card__explain-btn" v-if="ticket.explanation" :title="ticket.explanation" type="button"
+                aria-label="Explanation">
+
                 <!-- simple info icon -->
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#eef2ff"/>
-                    <path d="M11 10h2v6h-2v-6zm0-4h2v2h-2V6z" fill="#4f46e5"/>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#eef2ff" />
+                    <path d="M11 10h2v6h-2v-6zm0-4h2v2h-2V6z" fill="#4f46e5" />
                 </svg>
             </button>
 
@@ -107,13 +182,8 @@ const classifyTicket = async () => {
             <button class="ticket-card__btn" type="button" @click="updateTicket">
                 Update
             </button>
-            <button
-                class="ticket-card__btn ticket-card__btn--secondary"
-                type="button"
-                @click="classifyTicket"
-                :disabled="isClassifying"
-                :aria-busy="isClassifying"
-            >
+            <button class="ticket-card__btn ticket-card__btn--secondary" type="button" @click="classifyTicket"
+                :disabled="isClassifying" :aria-busy="isClassifying">
                 <span v-if="isClassifying" class="ticket-card__spinner" aria-hidden="true"></span>
                 <span v-if="isClassifying">Classifying...</span>
                 <span v-else>Classify</span>
@@ -126,6 +196,118 @@ const classifyTicket = async () => {
 </template>
 
 <style>
+.modal__header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    color: #111827;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.modal__title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: inherit;
+}
+
+.modal__body {
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: #ffffff;
+    color: #111827;
+}
+
+.modal__label {
+    display: block;
+}
+
+/* inner label used for the field caption (markup nests labels) */
+.modal__label>.modal__label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+    color: #111827;
+    font-size: 0.875rem;
+}
+
+.modal__error {
+    color: #dc2626;
+    margin-top: 0.25rem;
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.modal__input,
+.modal__textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    /* white fields with dark text */
+    color: #111827;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+}
+
+.modal__input:focus,
+.modal__textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+    border-color: #6366f1;
+}
+
+.modal__textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.modal__footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    background: #f9fafb;
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+}
+
+.modal__btn {
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.modal__btn--secondary {
+    background: #ffffff;
+    color: #111827;
+    border-color: #d1d5db;
+}
+
+.modal__btn--primary {
+    background: #111827;
+    color: #ffffff;
+    border-color: #111827;
+}
+
+.modal__btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@media (min-width: 640px) {
+    .modal__body {
+        padding: 1.25rem 1.5rem;
+    }
+}
+
 .ticket-card {
     height: 100%;
     border: 1px solid #e5e7eb;
@@ -147,7 +329,7 @@ const classifyTicket = async () => {
 
 .ticket-card:focus-within {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
 }
 
 /* Header */
@@ -234,8 +416,8 @@ const classifyTicket = async () => {
 
 /* Active modifier for card used when a list item is active */
 .ticket-card--active {
-    border-color: rgba(99,102,241,0.5);
-    box-shadow: 0 8px 28px rgba(99,102,241,0.06);
+    border-color: rgba(99, 102, 241, 0.5);
+    box-shadow: 0 8px 28px rgba(99, 102, 241, 0.06);
 }
 
 /* Body */
@@ -292,15 +474,17 @@ const classifyTicket = async () => {
     display: inline-block;
     width: 1rem;
     height: 1rem;
-    border: 2px solid rgba(0,0,0,0.15);
-    border-top-color: rgba(0,0,0,0.6);
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-top-color: rgba(0, 0, 0, 0.6);
     border-radius: 50%;
     margin-right: 0.5rem;
     animation: ticket-spin 0.8s linear infinite;
 }
 
 @keyframes ticket-spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .ticket-card__link {

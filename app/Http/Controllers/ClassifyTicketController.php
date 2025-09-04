@@ -3,24 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ticket;
-use App\Services\TicketClassifier;
+use App\Jobs\ClassifyTicket;
 use Illuminate\Http\Request;
+use App\Services\TicketClassifier;
 
 class ClassifyTicketController extends Controller
 {
     /**
      * Handle the incoming request.
      */
-    public function __invoke(Request $request, Ticket $ticket)
+    public function __invoke(Ticket $ticket)
     {
-        $classification = (new TicketClassifier())->classify($ticket);
+        ClassifyTicket::dispatch($ticket);
 
-        $ticket->update([
-            'category'   => $classification['category'] ?? null,
-            'explanation'=> $classification['explanation'] ?? null,
-            'confidence' => $classification['confidence'] ?? null,
-        ]);
-
-        return redirect()->back();
+        return response()->json(['message' => 'Ticket classification in progress'], 200);
     }
 }

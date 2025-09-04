@@ -39,6 +39,6 @@ Route::post('/tickets/{ticket:id}/classify', ClassifyTicketController::class)->n
 /**
  *  Get application statistics.
  */
-Route::get('/stats', StatsController::class)->name('stats');
+Route::get('/stats', StatsController::class)->name('api.stats');
 
 
