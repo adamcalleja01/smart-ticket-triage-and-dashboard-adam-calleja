@@ -10,10 +10,10 @@
 
 3. Install PHP deps (if vendor not present) or start Sail first (Ensure Docker is open on desktop)
    - `composer require laravel/sail --dev`
-   - `./vendor/bin/sail composer install`
-
-5. Start Sail (containers)
    - `./vendor/bin/sail up -d`
+
+5. Ensure Composer is Installed (containers)
+   - `./vendor/bin/sail composer install`
 
 6. Install JS deps
    - `./vendor/bin/sail yarn install`
