@@ -4,6 +4,7 @@
 
 2. Copy env and edit
    - cp .env.example .env
+   - code .
    - Edit .env (DB, APP_URL, mail, queue, etc.)
    - Ensure that OPENAI_API_KEY, OPENAI_ORG and OPENAI_CLASSIFY_ENABLED are set to appropriate values
 
