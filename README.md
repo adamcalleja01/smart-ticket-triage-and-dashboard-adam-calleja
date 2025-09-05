@@ -12,23 +12,24 @@
    - `composer require laravel/sail --dev`
    - `./vendor/bin/sail up -d`
 
-5. Ensure Composer is Installed (containers)
+4. Ensure Composer is Installed (containers)
    - `./vendor/bin/sail composer install`
 
-6. Install JS deps
+5. Install JS deps
    - `./vendor/bin/sail yarn install`
 
-7. Generate app key
+6. Generate app key
    - `./vendor/bin/sail artisan key:generate`
 
-8. Run migrations & seed
+7. Run migrations & seed
    - `./vendor/bin/sail artisan migrate --seed`
 
-9. Build assets
-   - Dev:  `./vendor/bin/sail npm run dev`
+8. Build assets and run development server
    - Prod: `./vendor/bin/sail npm run build`
+   - Dev:  `./vendor/bin/sail npm run dev`
 
-10. Start queue worker 
+9. Start queue worker
+    - Start a new terminal (Dont close the one from step 8)
     - `./vendor/bin/sail artisan queue:work`
 
 Notes
