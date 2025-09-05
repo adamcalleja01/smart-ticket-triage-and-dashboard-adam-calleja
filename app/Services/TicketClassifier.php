@@ -14,7 +14,7 @@ class TicketClassifier
 
         if (!$enabled) {
             return [
-                'category' => fake()->word(),
+                'category' => fake()->randomElement(Category::values()),
                 'explanation' => fake()->sentence(),
                 'confidence' => fake()->randomFloat(2, 0, 1),
             ];

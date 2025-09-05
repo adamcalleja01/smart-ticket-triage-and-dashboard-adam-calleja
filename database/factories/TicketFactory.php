@@ -27,6 +27,7 @@ class TicketFactory extends Factory
             'category' =>  $this->faker->randomElement(Category::values()),
             'explanation' => $this->faker->sentence(),
             'confidence' => $this->faker->randomFloat(2, 0, 1),
+            'note' => $this->faker->optional()->paragraph(),
         ];
     }
 }

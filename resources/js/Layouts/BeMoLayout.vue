@@ -1,5 +1,6 @@
 <script setup lang="js">
 import { ref, onMounted } from 'vue'
+import { Link } from '@inertiajs/vue3'
 
 // Theme state: 'dark' | 'light' | '' (follow system)
 const theme = ref('')
@@ -63,29 +64,35 @@ onMounted(() => {
 </script>
 
 <template>
-        <div class="layout">
-                <header class="layout__header">
-                        <div class="layout__brand">
-                                <img class="layout__brand-logo" src="https://assets.bemoacademicconsulting.com/files/AR8wdupQbJbHsczmjaMMjGId3cNRjmPLolORynZB.png" alt="BeMo Logo" />
-                                <h1 class="layout__brand-title">Ticket Triage System</h1>
-                        </div>
+    <div class="layout">
+        <header class="layout__header">
+            <Link :href="route('dashboard')" aria-label="BeMo Dashboard Home">
+            <div class="layout__brand">
+                <img class="layout__brand-logo"
+                    src="https://assets.bemoacademicconsulting.com/files/AR8wdupQbJbHsczmjaMMjGId3cNRjmPLolORynZB.png"
+                    alt="BeMo Logo" />
+                <h1 class="layout__brand-title">Ticket Triage System</h1>
+            </div>
 
-                        <div class="layout__header-controls">
-                                <button type="button" class="layout__theme-toggle" :aria-pressed="theme === 'dark'" @click="toggleTheme">
-                                        <span class="layout__theme-icon" aria-hidden="true">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
-                                        <span class="layout__theme-label">{{ theme === 'dark' ? 'Light' : 'Dark' }}</span>
-                                </button>
-                        </div>
-                </header>
+            <div class="layout__header-controls">
+                <button type="button" class="layout__theme-toggle" :aria-pressed="theme === 'dark'"
+                    @click="toggleTheme">
+                    <span class="layout__theme-icon" aria-hidden="true">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
+                    <span class="layout__theme-label">{{ theme === 'dark' ? 'Light' : 'Dark' }}</span>
+                </button>
+            </div>
+            </Link>
 
-                <main class="layout__content">
-                        <slot />
-                </main>
+        </header>
 
-                <footer class="layout__footer">
-                        <p class="layout__footer-text">© 2025 BeMo</p>
-                </footer>
-        </div>
+        <main class="layout__content">
+            <slot />
+        </main>
+
+        <footer class="layout__footer">
+            <p class="layout__footer-text">© 2025 BeMo</p>
+        </footer>
+    </div>
 </template>
 
 <style>
@@ -142,7 +149,7 @@ onMounted(() => {
     text-align: center;
     margin-top: auto;
     width: 100%;
-    box-shadow: 0 -6px 18px rgba(16,24,40,0.06);
+    box-shadow: 0 -6px 18px rgba(16, 24, 40, 0.06);
 }
 
 .layout__footer-text {
@@ -155,12 +162,11 @@ onMounted(() => {
 
 /* Safety: when theme class is applied to document root, ensure layout header/footer adjust */
 .dashboard--dark .layout {
-  background: var(--dash-bg);
-  color: var(--dash-text);
+    background: var(--dash-bg);
+    color: var(--dash-text);
 }
 
 .dashboard--dark .layout__header {
-  background: color-mix(in srgb, var(--dash-accent) 30%, #0b1020);
+    background: color-mix(in srgb, var(--dash-accent) 30%, #0b1020);
 }
-
 </style>
