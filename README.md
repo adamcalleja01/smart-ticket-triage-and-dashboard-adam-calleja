@@ -37,10 +37,10 @@ Notes
 
 ## Assumptions and Trade Offs
 - Had to import data with API, would have passed it through as a prop
-- UI is implemented with plain CSS and BEM instead of a component framework to keep the project self-contained
+- UI is implemented with plain CSS and BEM instead of a component framework
 - No authentication implemented 
 - Used enum classes to store status/categories
-- Used PostreSQL as the database
+- Used PostgreSQL as the database
 - Built project using Laravel Sail
 
 ## What I would do with more time
