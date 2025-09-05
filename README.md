@@ -8,7 +8,7 @@
    - Edit .env (DB, APP_URL, mail, queue, etc.)
    - Ensure that OPENAI_API_KEY, OPENAI_ORG and OPENAI_CLASSIFY_ENABLED are set to appropriate values
 
-3. Install PHP deps (if vendor not present) or start Sail first
+3. Install PHP deps (if vendor not present) or start Sail first (Ensure Docker is open on desktop)
    - `./vendor/bin/sail composer install`
 
 4. Start Sail (containers)
