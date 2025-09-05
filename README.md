@@ -36,10 +36,14 @@ Notes
 - Had to import data with API, would have passed it through as a prop
 - UI is implemented with plain CSS and BEM instead of a component framework to keep the project self-contained
 - No authentication implemented 
+- Used enum classes to store status/categories
+- Used PostreSQL as the database
+- Built project using Laravel Sail
 
 ## What I would do with more time
 - Install PrimeVue, and HeadlessUI for easier usage of Toasts, Modals, and other UI functions
-- Use Tailwind CSS to make styling easier, as well as add more icons to the page
+- Use Tailwind CSS to make styling easier, as well as add more icons to the page (Easier to manage dark/light mode with external packages)
 - Implement Broadcasting for updates for real time updates
 - Add unit tests to ensure that functionality is secure and functional
 - Implement permissions, policies, and authentication, as well as middleware.
+- Rate limiting would be implemented
