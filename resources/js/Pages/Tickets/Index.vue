@@ -40,7 +40,10 @@ const selectFilter = (value) => {
     fetchTickets();
 };
 
-
+/**
+ * Fetch tickets from the API.
+ * @param page Page number to fetch; defaults to 1
+ */
 const fetchTickets = async (page = 1) => {
     try {
         const response = await axios.get(route('api.tickets.index'), {
