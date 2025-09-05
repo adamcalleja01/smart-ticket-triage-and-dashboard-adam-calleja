@@ -25,22 +25,6 @@ const isClassifying = ref(false)
 // component-level theme state: '' | 'dark' | 'light'
 const theme = ref('')
 
-const updateThemeFromDocument = () => {
-    try {
-        const doc = document.documentElement
-        const attr = doc.getAttribute('data-bemo-theme')
-        if (attr === 'dark' || doc.classList.contains('dashboard--dark')) {
-            theme.value = 'dark'
-        } else if (attr === 'light') {
-            theme.value = 'light'
-        } else {
-            theme.value = ''
-        }
-    } catch (e) {
-        theme.value = ''
-    }
-}
-
 /**
  * Fetch the ticket details from the backend API.
  */
@@ -80,7 +64,12 @@ const updateTicket = async () => {
     }
 }
 
-/** Polls /api/tickets/:id until classifier has written fields */
+
+/**
+ * Waits for the classification of a ticket to complete.
+ * @param ticketId 
+ * @param param1 
+ */
 const waitForClassification = (
     ticketId,
     {

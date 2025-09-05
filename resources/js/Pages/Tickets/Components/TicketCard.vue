@@ -21,6 +21,9 @@ const emit = defineEmits(['refetch'])
 
 const isClassifying = ref(false)
 
+/**
+ * Updates the ticket using the backend API.
+ */
 const updateTicket = async () => {
     if (!useEditTicketDialog.isRevealed.value) {
         form.reset();
@@ -53,7 +56,11 @@ const updateTicket = async () => {
 
 }
 
-/** Polls /api/tickets/:id until classifier has written fields */
+/**
+ * Polls the API until the classifier has written fields.
+ * @param ticketId ID of the ticket to poll
+ * @param param1 
+ */
 const waitForClassification = (ticketId, {
     interval = 1200,
     timeout = 30000,
@@ -74,6 +81,9 @@ const waitForClassification = (ticketId, {
     resume()
 })
 
+/**
+ * Classifies the ticket using the backend API.
+ */
 const classifyTicket = async () => {
     isClassifying.value = true
     try {
@@ -91,12 +101,10 @@ const classifyTicket = async () => {
         isClassifying.value = false
     }
 }
-
-
-
 </script>
 
 <template>
+    <!-- Edit Ticket Modal -->
     <Modal :show="useEditTicketDialog.isRevealed.value" @close="useEditTicketDialog.cancel()">
         <div class="modal__header">
             <h2 class="modal__title">Edit Ticket</h2>
@@ -144,7 +152,6 @@ const classifyTicket = async () => {
             </div>
         </div>
     </Modal>
-
 
     <article class="ticket-card" :aria-label="`Ticket ${ticket.id}`">
         <header class="ticket-card__header">

@@ -5,6 +5,10 @@ import { Link } from '@inertiajs/vue3'
 // Theme state: 'dark' | 'light' | '' (follow system)
 const theme = ref('')
 
+/**
+ * Applies the theme class to the document.
+ * @param mode - 'dark' | 'light' | '' (follow system)
+ */
 const applyThemeClass = (mode) => {
     try {
         const doc = document.documentElement
@@ -23,6 +27,10 @@ const applyThemeClass = (mode) => {
     }
 }
 
+/**
+ * Sets the theme for the application.
+ * @param mode - 'dark' | 'light' | '' (follow system)
+ */
 const setTheme = (mode) => {
     theme.value = mode
     try {
@@ -37,6 +45,9 @@ const setTheme = (mode) => {
     applyThemeClass(mode)
 }
 
+/**
+ * Toggles between dark and light themes.
+ */
 const toggleTheme = () => {
     const next = theme.value === 'dark' ? 'light' : 'dark'
     setTheme(next)
