@@ -2,6 +2,9 @@
 
 namespace Database\Factories;
 
+use App\Enums\Category;
+use App\Enums\TicketStatus;
+use Symfony\Component\Uid\Ulid;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +20,14 @@ class TicketFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'id' => Ulid::generate(),
+            'subject' => $this->faker->sentence(),
+            'body' => $this->faker->paragraph(),
+            'status' => $this->faker->randomElement(TicketStatus::values()),
+            'category' =>  $this->faker->randomElement(Category::values()),
+            'explanation' => $this->faker->sentence(),
+            'confidence' => $this->faker->randomFloat(2, 0, 1),
+            'note' => $this->faker->optional()->paragraph(),
         ];
     }
 }

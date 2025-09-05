@@ -16,7 +16,11 @@ return new class extends Migration
             $table->ulid('id')->primary();
             $table->string('subject');
             $table->text('body');
-            $table->enum('status', [collect(TicketStatus::cases())]);
+            $table->enum('status', TicketStatus::values())->default(TicketStatus::OPEN->value);
+            $table->string('category')->nullable();
+            $table->text('note')->nullable();
+            $table->text('explanation')->nullable();
+            $table->float('confidence')->nullable();
             $table->timestamps();
         });
     }
