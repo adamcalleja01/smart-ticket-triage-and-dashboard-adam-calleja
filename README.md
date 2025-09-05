@@ -9,25 +9,26 @@
    - Ensure that OPENAI_API_KEY, OPENAI_ORG and OPENAI_CLASSIFY_ENABLED are set to appropriate values
 
 3. Install PHP deps (if vendor not present) or start Sail first (Ensure Docker is open on desktop)
+   - `composer require laravel/sail --dev`
    - `./vendor/bin/sail composer install`
 
-4. Start Sail (containers)
+5. Start Sail (containers)
    - `./vendor/bin/sail up -d`
 
-5. Install JS deps
+6. Install JS deps
    - `./vendor/bin/sail yarn install`
 
-6. Generate app key
+7. Generate app key
    - `./vendor/bin/sail artisan key:generate`
 
-7. Run migrations & seed
+8. Run migrations & seed
    - `./vendor/bin/sail artisan migrate --seed`
 
-8. Build assets
+9. Build assets
    - Dev:  `./vendor/bin/sail npm run dev`
    - Prod: `./vendor/bin/sail npm run build`
 
-9. Start queue worker 
+10. Start queue worker 
     - `./vendor/bin/sail artisan queue:work`
 
 Notes
