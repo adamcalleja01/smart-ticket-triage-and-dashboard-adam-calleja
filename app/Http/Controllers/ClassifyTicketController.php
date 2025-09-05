@@ -16,6 +16,9 @@ class ClassifyTicketController extends Controller
     {
         ClassifyTicket::dispatch($ticket);
 
-        return response()->json(['message' => 'Ticket classification in progress'], 200);
+        return response()->json([
+            'status' => 'queued',
+            'ticket_id' => $ticket->id,
+        ], 202);
     }
 }

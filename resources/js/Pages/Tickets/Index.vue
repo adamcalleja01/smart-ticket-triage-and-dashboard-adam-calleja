@@ -43,7 +43,14 @@ const selectFilter = (value) => {
 
 const fetchTickets = async (page = 1) => {
     try {
-        const response = await axios.get(route('api.tickets.index'), { params: { ...params.value, page } });
+        const response = await axios.get(route('api.tickets.index'), {
+            params: { ...params.value, page, _ts: Date.now() },
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0',
+            },
+        });
         tickets.value = response.data;
     } catch (error) {
         console.error('Error fetching tickets:', error);
@@ -92,7 +99,7 @@ const addNewTicket = async () => {
         await axios.post(route('api.tickets.store'), { ...form });
         useAddTicketDialog.confirm();
         form.reset();
-        fetchTickets(); 
+        fetchTickets();
     } catch (error) {
         if (error.response?.data?.errors) {
             form.setError?.(error.response.data.errors);
@@ -109,6 +116,7 @@ onMounted(() => {
 </script>
 
 <template>
+
     <Head title="Tickets" />
 
     <!-- Modal for adding a new ticket -->
@@ -155,9 +163,9 @@ onMounted(() => {
             <div class="ticket-list__controls">
                 <div class="ticket-list__item ticket-list__item--search">
                     <label for="searchbar" class="ticket-list__label">Search for a City</label>
-                    <input type="text" id="searchbar"
-                        class="ticket-list__input"
-                        placeholder="Search by name or content of the ticket..." v-model="params.search" @keyup="onSearch" />
+                    <input type="text" id="searchbar" class="ticket-list__input"
+                        placeholder="Search by name or content of the ticket..." v-model="params.search"
+                        @keyup="onSearch" />
                 </div>
 
                 <div class="ticket-list__item ticket-list__item--filter" v-if="ticket_status.length">
@@ -165,10 +173,13 @@ onMounted(() => {
 
                     <!-- attach ref for outside-click, and control open state -->
                     <div class="filter__dropdown" ref="filterRef">
-                        <button type="button" class="filter__toggle" :aria-expanded="isFilterOpen" aria-haspopup="listbox"
-                            @click="isFilterOpen = !isFilterOpen" @keydown.escape.prevent.stop="isFilterOpen = false">
+                        <button type="button" class="filter__toggle" :aria-expanded="isFilterOpen"
+                            aria-haspopup="listbox" @click="isFilterOpen = !isFilterOpen"
+                            @keydown.escape.prevent.stop="isFilterOpen = false">
                             <span class="filter__selected">
-                                {{(ticket_status.find(s => s.value === params.filter) || { label: 'All statuses' }).label}}
+                                {{(ticket_status.find(s => s.value === params.filter) || {
+                                    label: 'All statuses'
+                                }).label}}
                             </span>
                             <span class="filter__caret">▾</span>
                         </button>
@@ -557,7 +568,7 @@ onMounted(() => {
 .ticket-list__input:focus {
     outline: none;
     border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
 }
 
 .ticket-list__item--filter {
@@ -589,7 +600,7 @@ onMounted(() => {
 .ticket-list__item--active {
     box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
     border-radius: 0.5rem;
-    background: linear-gradient(180deg, rgba(99,102,241,0.03), transparent);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.03), transparent);
 }
 
 /* Controls responsive tweaks */

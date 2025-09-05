@@ -26,7 +26,7 @@ class TicketController extends Controller
                 ->when($filter, function ($query, $filter) {
                     $query->where('status', $filter);
                 })
-                ->orderBy('updated_at', 'desc')
+                ->orderBy('created_at', 'desc')
                 ->paginate(9)
         );
     }

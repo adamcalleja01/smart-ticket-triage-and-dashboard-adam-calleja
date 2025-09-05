@@ -2,6 +2,8 @@
 import BeMoLayout from '@/Layouts/BeMoLayout.vue';
 import { ref, onMounted } from 'vue';
 import { Head, useForm } from '@inertiajs/vue3';
+import { useIntervalFn, tryOnScopeDispose } from '@vueuse/core';
+import axios from 'axios';
 
 const props = defineProps({
     ticket: Object,
@@ -17,7 +19,27 @@ const form = useForm({
     note: props?.ticket?.note ?? '',
 })
 
+const preUpdatedAt = ref(props.ticket?.updated_at ? new Date(props.ticket.updated_at) : null)
 const isClassifying = ref(false)
+
+// component-level theme state: '' | 'dark' | 'light'
+const theme = ref('')
+
+const updateThemeFromDocument = () => {
+    try {
+        const doc = document.documentElement
+        const attr = doc.getAttribute('data-bemo-theme')
+        if (attr === 'dark' || doc.classList.contains('dashboard--dark')) {
+            theme.value = 'dark'
+        } else if (attr === 'light') {
+            theme.value = 'light'
+        } else {
+            theme.value = ''
+        }
+    } catch (e) {
+        theme.value = ''
+    }
+}
 
 /**
  * Fetch the ticket details from the backend API.
@@ -26,7 +48,15 @@ const fetchTicket = async () => {
     try {
         const response = await axios.get(route('api.tickets.show', {
             ticket: props.ticket.id
-        }));
+        }), {
+            // cache-buster + no-cache headers to ensure fresh data
+            params: { _ts: Date.now() },
+            headers: {
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0',
+            },
+        });
         ticket.value = response.data;
     } catch (error) {
         console.error('Error fetching ticket:', error);
@@ -50,23 +80,81 @@ const updateTicket = async () => {
     }
 }
 
+/** Polls /api/tickets/:id until classifier has written fields */
+const waitForClassification = (
+    ticketId,
+    {
+        interval = 1200,
+        timeout = 30000,
+        // still allow content-based success, but also require updated_at to advance
+        done = (t) => !!t?.explanation || t?.confidence != null || !!t?.category,
+    } = {}
+) => new Promise((resolve, reject) => {
+    const start = Date.now()
+    const { pause, resume } = useIntervalFn(async () => {
+        try {
+            const { data } = await axios.get(
+                route('api.tickets.show', { ticket: ticketId }),
+                {
+                    params: { _ts: Date.now() }, // <- cache buster
+                    headers: {
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        Pragma: 'no-cache',
+                        Expires: '0',
+                    },
+                }
+            )
+
+            const advanced =
+                preUpdatedAt.value
+                    ? new Date(data?.updated_at) > preUpdatedAt.value
+                    : true
+
+            if (advanced && done(data)) { pause(); return resolve(data) }
+
+            if (Date.now() - start > timeout) {
+                pause(); return reject(new Error('Classification timeout'))
+            }
+        } catch (e) {
+            pause(); return reject(e)
+        }
+    }, interval, { immediate: false })
+
+    tryOnScopeDispose(pause)
+    resume()
+})
+
+
+
 /**
  * Classify the ticket using the backend API.
  */
 const classifyTicket = async () => {
+    isClassifying.value = true
     try {
-        isClassifying.value = true
-        const response = await axios.post(route('api.tickets.classify', {
-            ticket: props?.ticket?.id
-        }))
-        fetchTicket();
-    } catch (error) {
-        console.error('Error classifying ticket:', error);
+        // remember the last updated_at we saw
+        preUpdatedAt.value = ticket.value?.updated_at
+            ? new Date(ticket.value.updated_at)
+            : (props.ticket?.updated_at ? new Date(props.ticket.updated_at) : null)
+
+        const res = await axios.post(route('api.tickets.classify', { ticket: props.ticket.id }))
+        if (res.status < 200 || res.status >= 300) throw new Error(`Bad status ${res.status}`)
+
+        await waitForClassification(props.ticket.id)
+
+        // IMPORTANT: await the refetch so the next render has fresh data
+        await fetchTicket()
+
+        // (optional) sync the form with the freshly loaded ticket values
+        form.status = ticket.value?.status ?? form.status
+        form.category = ticket.value?.category ?? form.category
+        form.note = ticket.value?.note ?? form.note
+    } catch (e) {
+        console.error('Classify error:', e)
     } finally {
         isClassifying.value = false
     }
 }
-
 onMounted(() => {
     fetchTicket();
 });
@@ -77,7 +165,7 @@ onMounted(() => {
     <Head title="Ticket Details" />
 
     <BeMoLayout>
-        <section class="ticket-show">
+        <section :class="['ticket-show', theme ? `ticket-show--${theme}` : '']">
             <header>
                 <h1>{{ ticket?.subject }}</h1>
                 <select id="status" class="ticket-show__status-select" v-model="form.status">
@@ -290,7 +378,7 @@ onMounted(() => {
 .ticket-show__status-select:focus {
     outline: none;
     border-color: #6366f1;
-    box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.08);
 }
 
 .ticket-fields select:focus,
@@ -334,6 +422,87 @@ onMounted(() => {
     .ticket-show>header {
         flex-direction: column;
         align-items: flex-start;
+    }
+}
+
+.ticket-card__body {
+    color: #374151;
+    font-size: 0.95rem;
+}
+
+.ticket-card__excerpt {
+    margin: 0 0 0.5rem 0;
+    /* keep long excerpts tidy */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    overflow: hidden;
+}
+
+.ticket-card__explanation {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Footer / actions */
+.ticket-card__footer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.ticket-card__btn {
+    background: #111827;
+    color: #fff;
+    border: none;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.375rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ticket-card__btn--secondary {
+    background: #fff;
+    color: #111827;
+    border: 1px solid #d1d5db;
+}
+
+.ticket-card__btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ticket-card__spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(0, 0, 0, 0.15);
+    border-top-color: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    animation: ticket-spin 0.8s linear infinite;
+}
+
+@keyframes ticket-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ticket-card__link {
+    margin-left: auto;
+    color: #4f46e5;
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+/* Small screens */
+@media (min-width: 640px) {
+    .ticket-card {
+        padding: 1rem 1.25rem;
     }
 }
 </style>

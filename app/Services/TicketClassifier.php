@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Ticket;
 use App\Enums\Category;
-use App\Enums\TicketStatus;
 use OpenAI\Laravel\Facades\OpenAI;
 
 class TicketClassifier
@@ -15,7 +14,6 @@ class TicketClassifier
 
         if (!$enabled) {
             return [
-                'status' => fake()->randomElement(TicketStatus::values()),
                 'category' => fake()->word(),
                 'explanation' => fake()->sentence(),
                 'confidence' => fake()->randomFloat(2, 0, 1),
@@ -31,7 +29,7 @@ class TicketClassifier
             You should also provide a brief explanation of why you chose that category and a confidence score between 0 and 1 indicating how confident you are in your classification.
             Your response should be in JSON format with the following structure:
             {
-                "status": "chosen_status",
+                "category": "chosen_category",
                 "explanation": "brief_explanation",
                 "confidence": confidence_score
             }

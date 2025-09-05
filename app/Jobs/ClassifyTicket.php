@@ -37,16 +37,15 @@ class ClassifyTicket implements ShouldQueue
 
         $classification = (new TicketClassifier())->classify($ticket) ?? [];
 
-        $updateData = [
+        $ticket->update([
             'explanation' => $classification['explanation'] ?? null,
-            'confidence'  => $classification['confidence'] ?? null,
-        ];
+            'confidence' => $classification['confidence'] ?? null,
+        ]);
 
-        // Only set category if none exists (preserve manual choice)
-        if (empty($ticket->category)) {
-            $updateData['category'] = $classification['category'] ?? null;
+        if ($ticket->category == null) {
+            $ticket->update([
+                'category' => $classification['category'] ?? null,
+            ]);
         }
-
-        $ticket->update($updateData);
     }
 }

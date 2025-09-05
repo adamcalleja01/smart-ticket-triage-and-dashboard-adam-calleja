@@ -2,7 +2,7 @@
 import { Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
-import { useConfirmDialog } from '@vueuse/core';
+import { useConfirmDialog, useIntervalFn, tryOnScopeDispose } from '@vueuse/core';
 import Modal from '@/Components/Modal.vue';
 
 const useEditTicketDialog = useConfirmDialog();
@@ -23,7 +23,6 @@ const isClassifying = ref(false)
 
 const updateTicket = async () => {
     if (!useEditTicketDialog.isRevealed.value) {
-        // reset first to ensure a clean form state, then populate with current ticket values
         form.reset();
         form.clearErrors?.();
         Object.assign(form, {
@@ -36,13 +35,11 @@ const updateTicket = async () => {
         return;
     }
 
-    // Dialog already revealed -> user confirmed the edit, send the PATCH request
     try {
         await axios.patch(route('api.tickets.update', {
             ticket: props?.ticket?.id
         }), { ...form });
 
-        // Close the dialog as a confirmed action and reset local form
         useEditTicketDialog.confirm();
         form.reset();
         emit('refetch');
@@ -56,28 +53,45 @@ const updateTicket = async () => {
 
 }
 
-const classifyTicket = async () => {
-    let response; // declare outside so it's visible in finally
-    try {
-        isClassifying.value = true;
-        response = await axios.post(
-            route('api.tickets.classify', { ticket: props?.ticket?.id })
-        );
-    } catch (error) {
-        console.error('Error classifying ticket:', error);
-    } finally {
-        isClassifying.value = false;
-
-        if (!response) return; // request failed
-
-        if (response.status == 200) {
-            console.log('Ticket classification request accepted');
-            emit('refetch'); 
-        } else {
-            console.error('Unexpected response status:', response.status);
+/** Polls /api/tickets/:id until classifier has written fields */
+const waitForClassification = (ticketId, {
+    interval = 1200,
+    timeout = 30000,
+    done = (t) => !!t?.explanation || t?.confidence != null || !!t?.category
+} = {}) => new Promise((resolve, reject) => {
+    const start = Date.now()
+    const { pause, resume } = useIntervalFn(async () => {
+        try {
+            const { data } = await axios.get(route('api.tickets.show', { ticket: ticketId }))
+            if (done(data)) { pause(); return resolve(data) }
+            if (Date.now() - start > timeout) { pause(); return reject(new Error('Classification timeout')) }
+        } catch (e) {
+            pause(); return reject(e)
         }
+    }, interval, { immediate: false })
+
+    tryOnScopeDispose(pause) // stop if component unmounts
+    resume()
+})
+
+const classifyTicket = async () => {
+    isClassifying.value = true
+    try {
+        const res = await axios.post(route('api.tickets.classify', { ticket: props.ticket.id }))
+        if (res.status < 200 || res.status >= 300) throw new Error(`Bad status ${res.status}`)
+
+        // keep spinner on while we poll
+        await waitForClassification(props.ticket.id)
+
+        // reload the WHOLE list (parent already wires @refetch="fetchTickets")
+        emit('refetch')
+    } catch (e) {
+        console.error('Classify error:', e)
+    } finally {
+        isClassifying.value = false
     }
-};
+}
+
 
 
 </script>
@@ -89,23 +103,29 @@ const classifyTicket = async () => {
         </div>
 
         <div class="modal__body">
-            <label class="modal__label">
+            <label class="modal__label modal__field modal__field--half">
                 <label class="modal__label">Status</label>
-                <input v-model="form.status" class="modal__input" required />
-                <small v-if="form.errors.status" class="modal__error">
-                    {{ Array.isArray(form.errors.status) ? form.errors.status[0] : form.errors.status }}
-                </small>
+                <select id="status" class="ticket-show__status-select" v-model="form.status">
+                    <option v-for="status in $page.props.ticket_status" :key="status.value" :value="status.value">
+                        {{ status.label }}
+                    </option>
+                </select>
             </label>
 
-            <label class="modal__label">
+            <label class="modal__label modal__field modal__field--half">
                 <label class="modal__label">Category</label>
-                <input v-model="form.category" class="modal__input" required />
+                <select id="category" v-model="form.category" class="modal__select">
+                    <option value="" disabled>Select a category</option>
+                    <option v-for="cat in $page.props.categories" :key="cat.value" :value="cat.value">
+                        {{ cat.label }}
+                    </option>
+                </select>
                 <small v-if="form.errors.category" class="modal__error">
                     {{ Array.isArray(form.errors.category) ? form.errors.category[0] : form.errors.category }}
                 </small>
             </label>
 
-            <label class="modal__label">
+            <label class="modal__label modal__field modal__field--full">
                 <label class="modal__label">Note</label>
                 <textarea v-model="form.note" class="modal__textarea"></textarea>
                 <small v-if="form.errors.note" class="modal__error">
@@ -131,9 +151,11 @@ const classifyTicket = async () => {
             <h3 class="ticket-card__subject">{{ ticket.subject }}</h3>
             <span class="ticket-card__status" :class="{
                 'ticket-card__status--open': ticket.status === 'open',
-                'ticket-card__status--closed': ticket.status === 'closed'
+                'ticket-card__status--closed': ticket.status !== 'open'
             }">
-                {{ ticket.status ?? 'unknown' }}
+                {{ (ticket.status ?? 'unknown').toString().replace(/_/g, ' ').replace(/\b\w/g, function (c) {
+                    return c.toUpperCase();
+                }) }}
             </span>
         </header>
 
@@ -144,7 +166,8 @@ const classifyTicket = async () => {
 
             <!-- Category label -->
             <span class="ticket-card__category" v-if="ticket.category" :title="`Category: ${ticket.category}`">
-                {{ ticket.category }}
+                {{ (ticket.category ?? 'uncategorized').toString().replace(/_/g, ' ').replace(/\b\w/g, function (c) {
+                    return c.toUpperCase(); }) }}
             </span>
 
             <!-- Confidence label (inline formatting) -->
@@ -167,15 +190,12 @@ const classifyTicket = async () => {
 
             <!-- Note badge if present -->
             <span class="ticket-card__note-badge" v-if="ticket.note">
-                Note
+                Note Added
             </span>
         </div>
 
         <div class="ticket-card__body">
             <p class="ticket-card__excerpt">{{ ticket.body ?? 'No description available' }}</p>
-            <p class="ticket-card__explanation" v-if="ticket.explanation">
-                <strong>Explanation:</strong> {{ ticket.explanation }}
-            </p>
         </div>
 
         <footer class="ticket-card__footer">
@@ -214,8 +234,8 @@ const classifyTicket = async () => {
 
 .modal__body {
     padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr;
     gap: 1rem;
     background: #ffffff;
     color: #111827;
@@ -223,6 +243,40 @@ const classifyTicket = async () => {
 
 .modal__label {
     display: block;
+}
+
+/* Field layout helpers */
+.modal__field {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal__field--half {
+    width: 100%;
+}
+
+.modal__field--full {
+    grid-column: 1 / -1;
+}
+
+/* nicer select styling to match modal inputs */
+.modal__select,
+.ticket-show__status-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 0.375rem;
+    box-sizing: border-box;
+    appearance: none;
+}
+
+.modal__select:focus,
+.ticket-show__status-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
+    border-color: #6366f1;
 }
 
 /* inner label used for the field caption (markup nests labels) */
@@ -305,6 +359,7 @@ const classifyTicket = async () => {
 @media (min-width: 640px) {
     .modal__body {
         padding: 1.25rem 1.5rem;
+        grid-template-columns: 1fr 1fr;
     }
 }
 
